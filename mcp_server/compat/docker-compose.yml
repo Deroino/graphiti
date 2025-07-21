@@ -27,9 +27,7 @@ services:
       - graphiti
 
   mcp-server:
-    build:
-      context: ../../ # Point to the project root to include graphiti_core
-      dockerfile: mcp_server/compat/Dockerfile
+    image: papillon0121/graphiti-mcp-server-compat:latest
     env_file:
       - path: .env
         required: false # Makes the file optional. Default value is 'true'

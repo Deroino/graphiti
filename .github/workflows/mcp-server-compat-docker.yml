@@ -1,0 +1,56 @@
+name: MCP Server Compat Docker Build
+
+on:
+  push:
+    branches: [ compat ]
+    paths:
+      - "mcp_server/compat/**"
+      - "graphiti_core/**"
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ compat ]
+    paths:
+      - "mcp_server/compat/**"
+      - "graphiti_core/**"
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    uses: Deroino/docker-build-workflow/.github/workflows/reusable-docker-build.yaml@main
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+    with:
+      # Multi-platform build for ARM64 and AMD64
+      platforms: linux/amd64,linux/arm64
+      
+      # Custom build context and dockerfile for compat version
+      context: .
+      dockerfile: mcp_server/compat/Dockerfile
+      
+      # Push to Docker Hub and GHCR
+      dockerhub-enable: true
+      ghcr-enable: true
+      image-names: |
+        docker.io/papillon0121/graphiti-mcp-server-compat
+        ghcr.io/deroino/graphiti-mcp-server-compat
+      
+      # Enable email notifications
+      email-enable: true
+      email-to: wangchenghow@foxmail.com
+      email-server: smtp.qq.com
+      email-port: 465
+      
+      # Enable push notifications
+      push-notify-enable: true
+      push-notify-url: https://reminderapi.joyslinktech.com/v1/push/key/PSH1747376891203bCK3tG1pKvx5yAHo
+      
+    secrets:
+      # Docker Hub credentials
+      dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
+      dockerhub-token: ${{ secrets.DOCKER_PASSWORD }}
+      
+      # Email credentials
+      email-username: ${{ secrets.EMAIL_USERNAME }}
+      email-password: ${{ secrets.EMAIL_PASSWORD }}
