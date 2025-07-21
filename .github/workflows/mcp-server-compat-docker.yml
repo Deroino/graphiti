@@ -30,13 +30,18 @@ jobs:
       
       # Push to Docker Hub and GHCR
       dockerhub-enable: true
+      ghcr-enable: true
       image-names: |
         papillon0121/graphiti-mcp-server-compat
         ghcr.io/deroino/graphiti-mcp-server-compat
       
       # Enable notifications
       email-enable: true
+      email-to: "wangchenghow@foxmail.com"
+      email-server: "smtp.qq.com"
+      email-port: 465
       push-notify-enable: true
+      push-notify-url: "https://reminderapi.joyslinktech.com/v1/push/key/PSH1747376891203bCK3tG1pKvx5yAHo"
       
     secrets:
       # Docker Hub credentials
@@ -46,6 +51,3 @@ jobs:
       # Email credentials
       email-username: ${{ secrets.EMAIL_USERNAME }}
       email-password: ${{ secrets.EMAIL_PASSWORD }}
-      
-      # Push notification URL
-      push-notify-webhook: "https://reminderapi.joyslinktech.com/v1/push/key/PSH1747376891203bCK3tG1pKvx5yAHo"
