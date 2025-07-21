@@ -15,87 +15,37 @@ on:
 
 jobs:
   docker-build:
-    runs-on: ubuntu-latest
+    uses: Deroino/docker-build-workflow/.github/workflows/reusable-docker-build.yaml@main
     permissions:
       contents: read
       packages: write
       pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            papillon0121/graphiti-mcp-server-compat
-            ghcr.io/deroino/graphiti-mcp-server-compat
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: mcp_server/compat/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Send email notification
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.qq.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "🐳 Graphiti MCP Server Compat Docker Build ${{ job.status }}"
-          body: |
-            Build Status: ${{ job.status }}
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Actor: ${{ github.actor }}
-            
-            View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: wangchenghow@foxmail.com
-          from: ${{ secrets.EMAIL_USERNAME }}
-
-      - name: Send push notification
-        if: always()
-        run: |
-          curl -X POST "https://reminderapi.joyslinktech.com/v1/push/key/PSH1747376891203bCK3tG1pKvx5yAHo" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "title": "🐳 Graphiti MCP Compat Build ${{ job.status }}",
-              "message": "Branch: ${{ github.ref_name }}\nStatus: ${{ job.status }}\nCommit: ${{ github.sha }}"
-            }'
+    with:
+      # Multi-platform build for ARM64 and AMD64
+      platforms: "linux/amd64,linux/arm64"
+      
+      # Custom build context and dockerfile for compat version
+      context: "."
+      file: "mcp_server/compat/Dockerfile"
+      
+      # Push to Docker Hub and GHCR
+      dockerhub-enable: true
+      image-names: |
+        papillon0121/graphiti-mcp-server-compat
+        ghcr.io/deroino/graphiti-mcp-server-compat
+      
+      # Enable notifications
+      email-enable: true
+      push-notify-enable: true
+      
+    secrets:
+      # Docker Hub credentials
+      dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
+      dockerhub-token: ${{ secrets.DOCKER_PASSWORD }}
+      
+      # Email credentials
+      email-username: ${{ secrets.EMAIL_USERNAME }}
+      email-password: ${{ secrets.EMAIL_PASSWORD }}
+      
+      # Push notification URL
+      push-notify-webhook: "https://reminderapi.joyslinktech.com/v1/push/key/PSH1747376891203bCK3tG1pKvx5yAHo"
