@@ -105,7 +105,7 @@ class OpenAICompatClient(LLMClient):
                 )
                 # instructor directly returns Pydantic object, convert to dictionary
                 result = response.model_dump()
-                logger.info(f"✅ Structured Responded")
+                logger.info("✅ Structured Responded")
                 
                 # cloud enable this logger for logging the output messages if you need
                 # logger.info(f"✅ Structured Response: {result}")
@@ -121,7 +121,7 @@ class OpenAICompatClient(LLMClient):
                     temperature=self.config.temperature,
                 )
                 result = {"content": response.choices[0].message.content}
-                logger.info(f"📄 Text responded")
+                logger.info("📄 Text responded")
                 
                 # cloud enable this logger for logging the output messages if you need
                 # logger.info(f"📄 Text Response: {result}")
