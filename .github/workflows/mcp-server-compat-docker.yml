@@ -6,7 +6,6 @@ on:
     paths:
       - "mcp_server/compat/**"
       - "graphiti_core/**"
-    tags: [ 'v*' ]
   pull_request:
     branches: [ compat ]
     paths:
