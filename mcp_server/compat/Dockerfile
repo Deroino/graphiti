@@ -26,12 +26,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Create non-root user
 RUN groupadd -r app && useradd -r -d /app -g app app
 
-# Modify the build context to copy from the parent directory to include graphiti_core
-COPY mcp_server/compat/pyproject.toml ./pyproject.toml
+# Copy project files from root context
+COPY mcp_server/compat/pyproject.toml ./
 COPY mcp_server/compat/uv.lock ./
 COPY graphiti_core/ ./graphiti_core/
-
-# Modify the application file name
 COPY mcp_server/compat/graphiti_mcp_server.py ./
 
 # Modify startup command
