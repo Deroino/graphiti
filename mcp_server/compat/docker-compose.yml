@@ -6,9 +6,7 @@ networks:
 services:
   neo4j:
     image: neo4j:2025.06.2
-    ports:
-      - '7474:7474' # HTTP
-      - '7687:7687' # Bolt
+    network_mode: host
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-graphiti}
       - NEO4J_server_memory_heap_initial__size=512m
@@ -23,11 +21,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks:
-      - graphiti
 
   mcp-server:
     image: papillon0121/graphiti-mcp-server-compat:latest
+    network_mode: host
     env_file:
       - path: .env
         required: false # Makes the file optional. Default value is 'true'
@@ -35,7 +32,7 @@ services:
       neo4j:
         condition: service_healthy
     environment:
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_URI=${NEO4J_URI:-bolt://localhost:7687}
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-graphiti}
       - LLM_BASE_URL=${LLM_BASE_URL}
@@ -48,10 +45,6 @@ services:
       - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME}
       - PATH=/root/.local/bin:${PATH}
       - SEMAPHORE_LIMIT=${SEMAPHORE_LIMIT:-10}
-    networks:
-      - graphiti
-    ports:
-      - '${PORT:-8000}:${PORT:-8000}'
     command: ['uv', 'run', 'graphiti_mcp_server.py', '--transport', 'sse']
 
 volumes:
