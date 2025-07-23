@@ -75,7 +75,7 @@ class OpenAIEmbedder(EmbedderClient):
             
             return result.data[0].embedding[: self.config.embedding_dim]
         except Exception as e:
-            logger.error(f"Error in OpenAI embedding creation: {e}")
+            logger.error(f"Error in OpenAI embedding creation: {e}, raw response: {result}")
             logger.error(f"Input data type: {type(input_data)}")
             logger.error(f"Model: {self.config.embedding_model}")
             raise
@@ -97,7 +97,7 @@ class OpenAIEmbedder(EmbedderClient):
             
             return [embedding.embedding[: self.config.embedding_dim] for embedding in result.data]
         except Exception as e:
-            logger.error(f"Error in OpenAI batch embedding creation: {e}")
+            logger.error(f"Error in OpenAI batch embedding creation: {e}, raw response: {result}")
             logger.error(f"Input data list length: {len(input_data_list)}")
             logger.error(f"Model: {self.config.embedding_model}")
             raise
