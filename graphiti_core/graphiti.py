@@ -680,17 +680,21 @@ class Graphiti:
 
                 extract_attributes_params.append((node, episode_mentions))
 
-            new_hydrated_nodes: list[list[EntityNode]] = await semaphore_gather(
-                *[
-                    extract_attributes_from_nodes(
-                        self.clients,
-                        [params[0]],
-                        params[1][0],
-                        params[1][0:],
-                        entity_types,
+            tasks = []
+            for params in extract_attributes_params:
+                if params[1]:  # Check if there are any mentioning episodes
+                    tasks.append(
+                        extract_attributes_from_nodes(
+                            self.clients,
+                            [params[0]],
+                            params[1][0],  # The most recent episode
+                            params[1],  # The full list of episodes
+                            entity_types,
+                        )
                     )
-                    for params in extract_attributes_params
-                ]
+            # If there are tasks, run them, otherwise default to an empty list.
+            new_hydrated_nodes: list[list[EntityNode]] = (
+                await semaphore_gather(*tasks) if tasks else []
             )
 
             hydrated_nodes = [node for nodes in new_hydrated_nodes for node in nodes]

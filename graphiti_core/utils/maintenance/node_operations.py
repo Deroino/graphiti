@@ -125,6 +125,8 @@ async def extract_nodes(
                 prompt_library.extract_nodes.extract_json(context), response_model=ExtractedEntities
             )
 
+
+        logger.debug(f'LLM response for node extraction: {llm_response}')
         extracted_entities: list[ExtractedEntity] = [
             ExtractedEntity(**entity_types_context)
             for entity_types_context in llm_response.get('extracted_entities', [])
@@ -151,6 +153,12 @@ async def extract_nodes(
     # Convert the extracted data into EntityNode objects
     extracted_nodes = []
     for extracted_entity in filtered_extracted_entities:
+        if not (0 <= extracted_entity.entity_type_id < len(entity_types_context)):
+            raise ValueError(
+                f"Invalid entity_type_id {extracted_entity.entity_type_id} from LLM "
+                f"for entity '{extracted_entity.name}'. "
+                f"Context length is {len(entity_types_context)}."
+            )
         entity_type_name = entity_types_context[extracted_entity.entity_type_id].get(
             'entity_type_name'
         )
