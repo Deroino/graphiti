@@ -16,7 +16,7 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 # Add uv to PATH
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Configure uv for optimal Docker usage
+# Configure uv for optimal Docker usage - 关键修改：允许使用现有Python
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     MCP_SERVER_HOST="0.0.0.0" \
@@ -31,5 +31,15 @@ COPY mcp_server/compat/uv.lock ./
 COPY graphiti_core/ ./graphiti_core/
 COPY mcp_server/compat/graphiti_mcp_server.py ./
 
-# Modify startup command
-CMD ["uv", "run", "graphiti_mcp_server.py"]
+# Install dependencies using existing Python - 关键修改：构建时安装依赖
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+# Change ownership to app user
+RUN chown -R app:app /app
+
+# Switch to non-root user
+USER app
+
+# Modify startup command - 使用已安装的环境
+CMD ["uv", "run", "--no-sync", "graphiti_mcp_server.py"]
