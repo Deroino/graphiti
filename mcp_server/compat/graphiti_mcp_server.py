@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import sys
+import traceback
 from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
@@ -378,6 +379,7 @@ logging.basicConfig(
     stream=sys.stderr,
 )
 logger = logging.getLogger(__name__)
+logging.getLogger('graphiti_core').setLevel(logging.DEBUG)
 
 # 仅显示 ERROR 及以上级别的 neo4j 日志
 logging.getLogger('neo4j').setLevel(logging.ERROR)
@@ -495,8 +497,8 @@ async def initialize_graphiti():
         )
         logger.info(f'💡 Using concurrency limit: {SEMAPHORE_LIMIT}')
 
-    except Exception as e:
-        logger.error(f'❌ Failed to initialize Graphiti: {str(e)}')
+    except Exception:
+        logger.error(f'❌ Failed to initialize Graphiti', exc_info=True)
         raise
 
 
@@ -548,15 +550,15 @@ async def process_episode_queue(group_id: str):
             try:
                 # Process the episode
                 await process_func()
-            except Exception as e:
-                logger.error(f'❌ Error processing queued episode for group_id {group_id}: {str(e)}')
+            except Exception:
+                logger.error(f'❌ Error processing queued episode for group_id {group_id}', exc_info=True)
             finally:
                 # Mark the task as done regardless of success/failure
                 episode_queues[group_id].task_done()
     except asyncio.CancelledError:
         logger.info(f'⚠️ Episode queue worker for group_id {group_id} was cancelled')
     except Exception as e:
-        logger.error(f'❌ Unexpected error in queue worker for group_id {group_id}: {str(e)}')
+        logger.error(f'❌ Unexpected error in queue worker for group_id {group_id}', exc_info=True)
     finally:
         queue_workers[group_id] = False
         logger.info(f'⚠️ Stopped episode queue worker for group_id: {group_id}')
@@ -673,11 +675,13 @@ async def add_memory(
                 logger.info(f"✅ Episode '{name}' added successfully")
 
                 logger.info(f"✅ Episode '{name}' processed successfully")
-            except Exception as e:
-                error_msg = str(e)
+            except Exception:
                 logger.error(
-                    f"❌ Error processing episode '{name}' for group_id {group_id_str}: {error_msg}"
+                    f"❌ Error processing episode '{name}' for group_id {group_id_str}",
+                    exc_info=True,
                 )
+                # Re-raise the exception to be caught by the outer queue processor if needed
+                raise
 
         # Initialize queue for this group_id if it doesn't exist
         if group_id_str not in episode_queues:
@@ -694,10 +698,9 @@ async def add_memory(
         return SuccessResponse(
             message=f"Episode '{name}' queued for processing (position: {episode_queues[group_id_str].qsize()})"
         )
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error queuing episode task: {error_msg}')
-        return ErrorResponse(error=f'Error queuing episode task: {error_msg}')
+    except Exception:
+        logger.error('❌ Error queuing episode task', exc_info=True)
+        return ErrorResponse(error=f'Error queuing episode task: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -775,10 +778,9 @@ async def search_memory_nodes(
         ]
 
         return NodeSearchResponse(message='Nodes retrieved successfully', nodes=formatted_nodes)
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error searching nodes: {error_msg}')
-        return ErrorResponse(error=f'Error searching nodes: {error_msg}')
+    except Exception:
+        logger.error('❌ Error searching nodes', exc_info=True)
+        return ErrorResponse(error=f'Error searching nodes: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -829,10 +831,9 @@ async def search_memory_facts(
 
         facts = [format_fact_result(edge) for edge in relevant_edges]
         return FactSearchResponse(message='Facts retrieved successfully', facts=facts)
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error searching facts: {error_msg}')
-        return ErrorResponse(error=f'Error searching facts: {error_msg}')
+    except Exception:
+        logger.error('❌ Error searching facts', exc_info=True)
+        return ErrorResponse(error=f'Error searching facts: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -859,10 +860,9 @@ async def delete_entity_edge(uuid: str) -> SuccessResponse | ErrorResponse:
         # Delete the edge using its delete method
         await entity_edge.delete(client.driver)
         return SuccessResponse(message=f'Entity edge with UUID {uuid} deleted successfully')
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error deleting entity edge: {error_msg}')
-        return ErrorResponse(error=f'Error deleting entity edge: {error_msg}')
+    except Exception:
+        logger.error('❌ Error deleting entity edge', exc_info=True)
+        return ErrorResponse(error=f'Error deleting entity edge: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -889,10 +889,9 @@ async def delete_episode(uuid: str) -> SuccessResponse | ErrorResponse:
         # Delete the node using its delete method
         await episodic_node.delete(client.driver)
         return SuccessResponse(message=f'✅ Episode with UUID {uuid} deleted successfully')
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error deleting episode: {error_msg}')
-        return ErrorResponse(error=f'Error deleting episode: {error_msg}')
+    except Exception:
+        logger.error('❌ Error deleting episode', exc_info=True)
+        return ErrorResponse(error=f'Error deleting episode: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -920,10 +919,9 @@ async def get_entity_edge(uuid: str) -> dict[str, Any] | ErrorResponse:
         # Use the format_fact_result function to serialize the edge
         # Return the Python dict directly - MCP will handle serialization
         return format_fact_result(entity_edge)
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error getting entity edge: {error_msg}')
-        return ErrorResponse(error=f'Error getting entity edge: {error_msg}')
+    except Exception:
+        logger.error('❌ Error getting entity edge', exc_info=True)
+        return ErrorResponse(error=f'Error getting entity edge: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -972,10 +970,9 @@ async def get_episodes(
 
         # Return the Python list directly - MCP will handle serialization
         return formatted_episodes
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error getting episodes: {error_msg}')
-        return ErrorResponse(error=f'Error getting episodes: {error_msg}')
+    except Exception:
+        logger.error('❌ Error getting episodes', exc_info=True)
+        return ErrorResponse(error=f'Error getting episodes: {traceback.format_exc()}')
 
 
 @mcp.tool()
@@ -997,10 +994,9 @@ async def clear_graph() -> SuccessResponse | ErrorResponse:
         await clear_data(client.driver)
         await client.build_indices_and_constraints()
         return SuccessResponse(message='✅ Graph cleared successfully and indices rebuilt')
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error clearing graph: {error_msg}')
-        return ErrorResponse(error=f'Error clearing graph: {error_msg}')
+    except Exception:
+        logger.error('❌ Error clearing graph', exc_info=True)
+        return ErrorResponse(error=f'Error clearing graph: {traceback.format_exc()}')
 
 
 @mcp.resource('http://graphiti/status')
@@ -1024,12 +1020,11 @@ async def get_status() -> StatusResponse:
         return StatusResponse(
             status='ok', message='✅ Graphiti MCP server is running and connected to Neo4j'
         )
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f'❌ Error checking Neo4j connection: {error_msg}')
+    except Exception:
+        logger.error('❌ Error checking Neo4j connection', exc_info=True)
         return StatusResponse(
             status='error',
-            message=f'❌ Graphiti MCP server is running but Neo4j connection failed: {error_msg}',
+            message=f'❌ Graphiti MCP server is running but Neo4j connection failed: {traceback.format_exc()}',
         )
 
 
@@ -1141,7 +1136,7 @@ def main():
         # Run everything in a single event loop
         asyncio.run(run_mcp_server())
     except Exception as e:
-        logger.error(f'❌ Error initializing Graphiti MCP server: {str(e)}')
+        logger.error(f'❌ Error initializing Graphiti MCP server', exc_info=True)
         raise
 
 
