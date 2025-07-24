@@ -433,10 +433,12 @@ graphiti_client: Graphiti | None = None
 
 async def initialize_graphiti():
     """Initialize the Graphiti client with the configured settings."""
+    logger.info("➡️ Starting Graphiti initialization...")
     global graphiti_client, config
 
     try:
         # Create LLM client if possible
+        logger.info("➡️ Creating LLM client...")
         llm_client = config.llm.create_client()
         if not llm_client and config.use_custom_entities:
             # If custom entities are enabled, we must have an LLM client
@@ -445,7 +447,8 @@ async def initialize_graphiti():
         # Validate Neo4j configuration
         if not config.neo4j.uri or not config.neo4j.user or not config.neo4j.password:
             raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
-
+        
+        logger.info("➡️ Creating embedder client...")
         embedder_client = config.embedder.create_client()
 
         # 调试：检查embedder_client是否为None
@@ -455,6 +458,7 @@ async def initialize_graphiti():
         # 创建兼容版本的 cross_encoder
         cross_encoder_client = OpenAICompatRerankerClient()
 
+        logger.info("➡️ Initializing main Graphiti object...")
         # Initialize Graphiti client
         graphiti_client = Graphiti(
             uri=config.neo4j.uri,
@@ -473,7 +477,7 @@ async def initialize_graphiti():
 
         # Initialize the graph database with Graphiti's indices
         await graphiti_client.build_indices_and_constraints()
-        logger.info('✅ Graphiti client initialized successfully')
+        logger.info('✅ Graphiti initialization complete. Server is ready.')
 
         # Log configuration details for transparency
         if llm_client:
@@ -574,7 +578,7 @@ async def add_memory(
     uuid: str | None = None,
 ) -> SuccessResponse | ErrorResponse:
     """Add an episode to memory. This is the primary way to add information to the graph.
-
+    
     This function returns immediately and processes the episode addition in the background.
     Episodes for the same group_id are processed sequentially to avoid race conditions.
 
@@ -628,6 +632,7 @@ async def add_memory(
         - Entities will be created from appropriate JSON properties
         - Relationships between entities will be established based on the JSON structure
     """
+    logger.info(f"Received add_memory request for episode: {name}")
     global graphiti_client, episode_queues, queue_workers
 
     if graphiti_client is None:
