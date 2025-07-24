@@ -58,10 +58,19 @@ class OpenAIEmbedder(EmbedderClient):
         self, input_data: str | list[str] | Iterable[int] | Iterable[Iterable[int]]
     ) -> list[float]:
         logger.debug(f"Creating embedding for input type: {type(input_data)}, model: {self.config.embedding_model}")
+        result = None
         try:
             result = await self.client.embeddings.create(
                 input=input_data, model=self.config.embedding_model
             )
+            if isinstance(result, str):
+                logger.error(
+                    "OpenAI-compatible server returned a string, not an object:"
+                    f" {result}"
+                )
+                raise ValueError(
+                    f"Expected embedding object, but got a string: {result[:200]}"
+                )
             logger.debug(f"OpenAI API response type: {type(result)}")
             logger.debug(f"OpenAI API response has .data attr: {hasattr(result, 'data')}")
             if hasattr(result, 'data'):
@@ -82,10 +91,19 @@ class OpenAIEmbedder(EmbedderClient):
 
     async def create_batch(self, input_data_list: list[str]) -> list[list[float]]:
         logger.debug(f"Creating batch embeddings for {len(input_data_list)} inputs, model: {self.config.embedding_model}")
+        result = None
         try:
             result = await self.client.embeddings.create(
                 input=input_data_list, model=self.config.embedding_model
             )
+            if isinstance(result, str):
+                logger.error(
+                    "OpenAI-compatible server returned a string, not an object:"
+                    f" {result}"
+                )
+                raise ValueError(
+                    f"Expected embedding object, but got a string: {result[:200]}"
+                )
             logger.debug(f"OpenAI batch API response type: {type(result)}")
             logger.debug(f"OpenAI batch API response has .data attr: {hasattr(result, 'data')}")
             if hasattr(result, 'data'):
