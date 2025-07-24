@@ -98,29 +98,14 @@ class OpenAICompatClient(LLMClient):
                 logger.info(f"🔧 Using safe_max_tokens: {safe_max_tokens} (original: {max_tokens})")
                 # Manually replicate instructor's call to log the raw response for debugging.
                 # This helps diagnose cases where the LLM returns a non-JSON string.
-                try:
-                    # Get the original, unpatched create function from the instructor-wrapped client
-                    original_create = self.client.chat.completions.create.original_fn
-
-                    # Make the raw API call to get the unprocessed response
-                    raw_response = await original_create(
-                        model=self.config.model,
-                        messages=openai_messages,
-                        max_tokens=safe_max_tokens,
-                        temperature=self.config.temperature,
-                    )
-
-                    # Log the raw response so we can see what the LLM *actually* returned
-                    logger.info(f"🐞 Raw LLM response: {raw_response}")
-
-                    # Now, attempt to parse the response using the expected Pydantic model
-                    response = response_model.from_response(raw_response)
-                except AttributeError as e:
-                    # This block now triggers if 'raw_response' is a string, but we have the evidence.
-                    logger.error(
-                        f"❌ Failed to parse raw LLM response. It is not a valid object. Response: {raw_response}"
-                    )
-                    raise RefusalError("LLM returned a non-JSON response that could not be parsed.") from e
+                response = await self.client.chat.completions.create(
+                    model=self.config.model,
+                    messages=openai_messages,
+                    max_tokens=safe_max_tokens,
+                    temperature=self.config.temperature,
+                    response_model=response_model,
+                    max_retries=self.MAX_RETRIES,
+                )
 
                 # instructor directly returns Pydantic object, convert to dictionary
                 result = response.model_dump()
