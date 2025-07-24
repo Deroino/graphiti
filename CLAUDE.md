@@ -1,3 +1,4 @@
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -140,3 +141,10 @@ When working with the MCP server, follow the patterns established in `mcp_server
 - Use specific entity type filters (`Preference`, `Procedure`, `Requirement`)
 - Store new information immediately using `add_memory`
 - Follow discovered procedures and respect established preferences
+- 修改代码后，不要再次尝试调用mcp，代码修改并非实时生效，而是通知用户
+
+### General Coding Principles
+
+- 任何时候的代码修改，如果用户没有明确要求，默认做最小化代码改动，避免过度设计
+
+```
