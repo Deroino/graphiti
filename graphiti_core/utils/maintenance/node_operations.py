@@ -262,7 +262,6 @@ async def resolve_extracted_nodes(
         response_model=NodeResolutions,
     )
 
-    logger.debug(f'LLM response for node deduplication: {llm_response}')
     node_resolutions: list = llm_response.get('entity_resolutions', [])
 
     resolved_nodes: list[EntityNode] = []
@@ -287,12 +286,8 @@ async def resolve_extracted_nodes(
 
         duplicates: list[int] = resolution.get('duplicates', [])
         for idx in duplicates:
-            if not (0 <= idx < len(existing_nodes)):
-                raise ValueError(
-                    f'LLM returned an invalid duplicate index: {idx}.'
-                    f' It is out of bounds for existing_nodes list of size {len(existing_nodes)}.'
-                )
-            existing_node = existing_nodes[idx]
+            existing_node = existing_nodes[idx] if idx < len(existing_nodes) else resolved_node
+
             node_duplicates.append((resolved_node, existing_node))
 
     logger.debug(f'Resolved nodes: {[(n.name, n.uuid) for n in resolved_nodes]}')
