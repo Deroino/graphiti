@@ -85,6 +85,7 @@ docker-compose up
 
 - **MCP Implementation**: `graphiti_mcp_server.py` - Model Context Protocol server for AI assistants
 - **Docker Support**: Containerized deployment with Neo4j
+- 当前项目的mcp服务运行在另外一台服务器上
 
 ## Testing
 
@@ -146,5 +147,3 @@ When working with the MCP server, follow the patterns established in `mcp_server
 ### General Coding Principles
 
 - 任何时候的代码修改，如果用户没有明确要求，默认做最小化代码改动，避免过度设计
-
-```
